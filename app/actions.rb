@@ -4,7 +4,6 @@ helpers do
     end
 end
 
-
 get '/' do
   @finstagram_posts = FinstagramPost.order(created_at: :desc)
   erb(:index)
@@ -20,7 +19,7 @@ post '/login' do
 
     user = User.find_by(username: username)
 
-    if user && user.password == password
+    if user && user.authenticate(password)
         session[:user_id] = user.id
         redirect to('/')
     else
@@ -55,3 +54,38 @@ post '/signup' do
   end
 end
 
+before '/finstagram_posts/new' do
+  redirect to('/login') unless logged_in?
+end
+
+get '/finstagram_posts/new' do
+  @finstagram_post = FinstagramPost.new
+  erb(:"finstagram_posts/new")
+end
+
+post '/finstagram_posts' do
+  photo_url = params[:photo_url]
+
+  @finstagram_post = FinstagramPost.new({ photo_url: photo_url, user_id: current_user.id })
+
+  if @finstagram_post.save
+    redirect(to('/'))
+  else
+    erb(:"finstagram_posts/new")
+  end
+end
+
+post '/comments' do
+  # point values from params to variables
+  text = params[:text]
+  finstagram_post_id = params[:finstagram_post_id]
+
+  # instantiate a comment with those values & assign the comment to the `current_user`
+  comment = Comment.new({ text: text, finstagram_post_id: finstagram_post_id, user_id: current_user.id })
+
+  # save the comment
+  comment.save
+
+  # `redirect` back to wherever we came from
+  redirect(back)
+end
